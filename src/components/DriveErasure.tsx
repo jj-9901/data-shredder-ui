@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -7,8 +8,11 @@ import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
-import { HardDrive, Shield, AlertTriangle, CheckCircle, FileText, Clock, Settings } from "lucide-react";
+import { HardDrive, Shield, AlertTriangle, CheckCircle, FileText, Clock, Settings, Info } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import DeviceInfoDialog from "./DeviceInfoDialog";
+import WipeInfoDialog from "./WipeInfoDialog";
+import EnhancedProgressView from "./EnhancedProgressView";
 
 interface DriveInfo {
   name: string;
@@ -23,6 +27,7 @@ type EraseState = "idle" | "confirming" | "erasing" | "completed";
 type EraseMethod = "quick" | "secure";
 
 const DriveErasure = () => {
+  const location = useLocation();
   const [eraseState, setEraseState] = useState<EraseState>("idle");
   const [eraseMethod, setEraseMethod] = useState<EraseMethod>("quick");
   const [progress, setProgress] = useState(0);
@@ -31,7 +36,21 @@ const DriveErasure = () => {
   const [confirmChecked, setConfirmChecked] = useState(false);
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
   const [showCertificate, setShowCertificate] = useState(false);
+  const [showDeviceInfo, setShowDeviceInfo] = useState(false);
+  const [showWipeInfo, setShowWipeInfo] = useState(false);
+  const [config, setConfig] = useState(location.state?.config);
   const { toast } = useToast();
+
+  // Check if we should start wiping immediately (from configuration page)
+  useEffect(() => {
+    if (location.state?.startWipe && location.state?.config) {
+      setEraseState("erasing");
+      toast({
+        title: "Starting Secure Wipe",
+        description: "Beginning configured erasure process...",
+      });
+    }
+  }, [location.state, toast]);
 
   // Mock drive info - in real app this would come from system detection
   const driveInfo: DriveInfo = {
@@ -231,62 +250,11 @@ const DriveErasure = () => {
 
   if (eraseState === "erasing") {
     return (
-      <div className="min-h-screen bg-gradient-subtle flex items-center justify-center p-4">
-        <Card className="w-full max-w-2xl shadow-card animate-pulse-glow">
-          <CardHeader className="text-center pb-6">
-            <div className="mx-auto w-16 h-16 bg-gradient-primary rounded-full flex items-center justify-center mb-4">
-              <HardDrive className="w-8 h-8 text-primary-foreground animate-pulse" />
-            </div>
-            <CardTitle>Erasing Drive</CardTitle>
-            <CardDescription className="font-mono text-sm">
-              {driveInfo.path} – {driveInfo.size} {driveInfo.type}
-            </CardDescription>
-          </CardHeader>
-          
-          <CardContent className="space-y-8">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-              <div className="space-y-4">
-                <div className="space-y-3">
-                  <div className="flex justify-between items-center">
-                    <Label className="text-base font-semibold">Progress</Label>
-                    <span className="text-lg font-mono font-bold">{Math.round(progress)}%</span>
-                  </div>
-                  <Progress value={progress} className="h-4" />
-                </div>
-                
-                <div className="text-center">
-                  <p className="text-base text-muted-foreground animate-pulse">
-                    {currentAction}
-                  </p>
-                </div>
-              </div>
-              
-              <div className="space-y-4">
-                <h3 className="font-semibold text-base">Erasure Information</h3>
-                <div className="space-y-2 text-sm">
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Method:</span>
-                    <span>{eraseMethod === "secure" ? "Secure Multi-pass" : "Quick Single-pass"}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Device:</span>
-                    <span className="font-mono">{driveInfo.path}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Size:</span>
-                    <span>{driveInfo.size} {driveInfo.type}</span>
-                  </div>
-                </div>
-                
-                <div className="flex items-center justify-center text-sm text-muted-foreground mt-6">
-                  <Clock className="w-4 h-4 mr-2" />
-                  This may take several minutes
-                </div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+      <EnhancedProgressView 
+        onComplete={() => setEraseState("completed")}
+        onCancel={resetToIdle}
+        config={config}
+      />
     );
   }
 
@@ -307,19 +275,21 @@ const DriveErasure = () => {
             <div className="space-y-6">
               <div>
                 <h3 className="text-lg font-semibold mb-4">Device Information</h3>
-                <div className="p-6 bg-muted rounded-lg">
+                <div className="p-6 bg-muted rounded-lg cursor-pointer hover:bg-muted/80 transition-colors" onClick={() => setShowDeviceInfo(true)}>
                   <div className="flex items-center gap-4 mb-4">
                     <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center">
                       <HardDrive className="w-6 h-6 text-primary" />
                     </div>
-                    <div>
+                    <div className="flex-1">
                       <p className="font-mono text-base font-medium">
                         {driveInfo.path} – {driveInfo.size} {driveInfo.type}
                       </p>
                       <p className="text-sm text-muted-foreground">{driveInfo.model}</p>
                       <p className="text-xs text-muted-foreground font-mono">Serial: {driveInfo.serial}</p>
                     </div>
+                    <Info className="w-5 h-5 text-muted-foreground" />
                   </div>
+                  <p className="text-xs text-center text-muted-foreground">Click for detailed device information</p>
                 </div>
               </div>
 
@@ -382,8 +352,17 @@ const DriveErasure = () => {
                 </div>
               </div>
 
-              {/* Action Button */}
-              <div className="pt-4">
+              {/* Action Buttons */}
+              <div className="pt-4 space-y-3">
+                <Button 
+                  onClick={() => setShowWipeInfo(true)}
+                  variant="outline"
+                  className="w-full h-12 text-base"
+                >
+                  <AlertTriangle className="w-5 h-5 mr-3" />
+                  What Happens When I Wipe?
+                </Button>
+                
                 <Button 
                   onClick={handleWipeClick}
                   className="w-full bg-gradient-destructive hover:shadow-destructive transition-all duration-300 h-14 text-lg"
@@ -473,6 +452,22 @@ const DriveErasure = () => {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Device Info Dialog */}
+      <DeviceInfoDialog 
+        open={showDeviceInfo}
+        onOpenChange={setShowDeviceInfo}
+        onShowWipeInfo={() => {
+          setShowDeviceInfo(false);
+          setShowWipeInfo(true);
+        }}
+      />
+
+      {/* Wipe Info Dialog */}
+      <WipeInfoDialog 
+        open={showWipeInfo}
+        onOpenChange={setShowWipeInfo}
+      />
     </div>
   );
 };
