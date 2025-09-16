@@ -10,7 +10,7 @@ const Index = () => {
   const [showQuickWipe, setShowQuickWipe] = useState(false);
 
   if (showQuickWipe) {
-    return <DriveErasure />;
+    return <DriveErasure onBackToHome={() => setShowQuickWipe(false)} />;
   }
 
   return (

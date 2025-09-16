@@ -8,11 +8,13 @@ import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
-import { HardDrive, Shield, AlertTriangle, CheckCircle, FileText, Clock, Settings, Info } from "lucide-react";
+import { HardDrive, Shield, AlertTriangle, CheckCircle, FileText, Clock, Settings, Info, ChevronLeft } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import DeviceInfoDialog from "./DeviceInfoDialog";
 import WipeInfoDialog from "./WipeInfoDialog";
 import EnhancedProgressView from "./EnhancedProgressView";
+import { useNavigate } from "react-router-dom";
+
 
 interface DriveInfo {
   name: string;
@@ -26,7 +28,12 @@ interface DriveInfo {
 type EraseState = "idle" | "confirming" | "erasing" | "completed";
 type EraseMethod = "quick" | "secure";
 
-const DriveErasure = () => {
+interface DriveErasureProps {
+  onBackToHome?: () => void;
+}
+
+const DriveErasure = ({ onBackToHome }: DriveErasureProps) => {
+  const navigate = useNavigate();
   const location = useLocation();
   const [eraseState, setEraseState] = useState<EraseState>("idle");
   const [eraseMethod, setEraseMethod] = useState<EraseMethod>("quick");
@@ -262,6 +269,23 @@ const DriveErasure = () => {
     <div className="min-h-screen bg-gradient-subtle flex items-center justify-center p-4">
       <Card className="w-full max-w-4xl shadow-card animate-fade-in">
         <CardHeader className="text-center pb-6">
+          <div className="text-center mb-8">
+            <Button
+            variant="ghost"
+            onClick={() => {
+              if (onBackToHome) {
+                onBackToHome();
+              } else {
+                navigate("/");
+              }
+            }}
+            className="mb-4 flex items-center"
+            type="button"
+          >
+            <ChevronLeft className="w-4 h-4 mr-2" />
+            Back to Home
+          </Button>
+          </div>
           <div className="mx-auto w-16 h-16 bg-gradient-primary rounded-full flex items-center justify-center mb-4">
             <HardDrive className="w-8 h-8 text-primary-foreground" />
           </div>
@@ -462,7 +486,7 @@ const DriveErasure = () => {
           setShowWipeInfo(true);
         }}
       />
-
+      
       {/* Wipe Info Dialog */}
       <WipeInfoDialog 
         open={showWipeInfo}

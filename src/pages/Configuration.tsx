@@ -386,8 +386,7 @@ const Configuration = () => {
     <div className="min-h-screen bg-gradient-subtle p-4">
       <div className="max-w-4xl mx-auto">
         {/* Header */}
-        <div className="text-center mb-8">
-          <Button
+         <Button
             variant="ghost"
             onClick={() => navigate("/")}
             className="mb-4"
@@ -395,6 +394,7 @@ const Configuration = () => {
             <ChevronLeft className="w-4 h-4 mr-2" />
             Back to Home
           </Button>
+        <div className="text-center mb-8">
           <h1 className="text-3xl font-bold mb-2">Drive Erasure Configuration</h1>
           <p className="text-muted-foreground">Configure your secure drive erasure settings</p>
         </div>
